@@ -1,0 +1,889 @@
+diff --git a/Makefile.am b/Makefile.am
+index 9b0632b..a22ea43 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -277,7 +277,6 @@ libarchive_test_SOURCES=					\
+ 	libarchive/test/test_read_format_isorr_bz2.c		\
+ 	libarchive/test/test_read_format_isorr_ce.c		\
+ 	libarchive/test/test_read_format_isorr_new_bz2.c	\
+-	libarchive/test/test_read_format_isorr_rr_moved.c	\
+ 	libarchive/test/test_read_format_isozisofs_bz2.c	\
+ 	libarchive/test/test_read_format_mtree.c		\
+ 	libarchive/test/test_read_format_pax_bz2.c		\
+@@ -288,7 +287,6 @@ libarchive_test_SOURCES=					\
+ 	libarchive/test/test_read_format_tgz.c			\
+ 	libarchive/test/test_read_format_tlz.c			\
+ 	libarchive/test/test_read_format_txz.c			\
+-	libarchive/test/test_read_format_tz.c			\
+ 	libarchive/test/test_read_format_xar.c			\
+ 	libarchive/test/test_read_format_zip.c			\
+ 	libarchive/test/test_read_large.c			\
+@@ -305,14 +303,12 @@ libarchive_test_SOURCES=					\
+ 	libarchive/test/test_write_compress_lzma.c		\
+ 	libarchive/test/test_write_compress_program.c		\
+ 	libarchive/test/test_write_compress_xz.c		\
+-	libarchive/test/test_write_disk.c			\
+ 	libarchive/test/test_write_disk_failures.c		\
+ 	libarchive/test/test_write_disk_hardlink.c		\
+ 	libarchive/test/test_write_disk_perms.c			\
+ 	libarchive/test/test_write_disk_secure.c		\
+ 	libarchive/test/test_write_disk_sparse.c		\
+ 	libarchive/test/test_write_disk_symlink.c		\
+-	libarchive/test/test_write_disk_times.c			\
+ 	libarchive/test/test_write_format_ar.c			\
+ 	libarchive/test/test_write_format_cpio.c		\
+ 	libarchive/test/test_write_format_cpio_empty.c		\
+diff --git a/libarchive/test/test_read_format_isorr_rr_moved.c b/libarchive/test/test_read_format_isorr_rr_moved.c
+deleted file mode 100644
+index d59b346..0000000
+--- a/libarchive/test/test_read_format_isorr_rr_moved.c
++++ /dev/null
+@@ -1,270 +0,0 @@
+-/*-
+- * Copyright (c) 2003-2007 Tim Kientzle
+- * Copyright (c) 2009 Michihiro NAKAJIMA
+- * All rights reserved.
+- *
+- * Redistribution and use in source and binary forms, with or without
+- * modification, are permitted provided that the following conditions
+- * are met:
+- * 1. Redistributions of source code must retain the above copyright
+- *    notice, this list of conditions and the following disclaimer.
+- * 2. Redistributions in binary form must reproduce the above copyright
+- *    notice, this list of conditions and the following disclaimer in the
+- *    documentation and/or other materials provided with the distribution.
+- *
+- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR(S) ``AS IS'' AND ANY EXPRESS OR
+- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+- * IN NO EVENT SHALL THE AUTHOR(S) BE LIABLE FOR ANY DIRECT, INDIRECT,
+- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+- */
+-#include "test.h"
+-__FBSDID("$FreeBSD: head/lib/libarchive/test/test_read_format_isorr_rr_moved.c 201247 2009-12-30 05:59:21Z kientzle $");
+-
+-/*
+-Execute the following command to rebuild the data for this program:
+-   tail -n +32 test_read_format_isorr_rr_moved.c | /bin/sh
+-
+-dirname=/tmp/iso
+-rm -rf $dirname
+-mkdir -p $dirname/dir1/dir2/dir3/dir4/dir5/dir6/dir7/dir8/dir9/dir10
+-echo "hello" >$dirname/file
+-dd if=/dev/zero count=1 bs=12345678 >>$dirname/file
+-deepfile=$dirname/dir1/dir2/dir3/dir4/dir5/dir6/dir7/dir8/dir9/dir10/deep
+-echo "hello" >$deepfile
+-dd if=/dev/zero count=1 bs=12345678 >>$deepfile
+-time="197001020000.01"
+-TZ=utc touch -afhm -t $time $deepfile
+-TZ=utc touch -afhm -t $time $dirname/dir1/dir2/dir3/dir4/dir5/dir6/dir7/dir8/dir9/dir10
+-TZ=utc touch -afhm -t $time $dirname/dir1/dir2/dir3/dir4/dir5/dir6/dir7/dir8/dir9
+-TZ=utc touch -afhm -t $time $dirname/dir1/dir2/dir3/dir4/dir5/dir6/dir7/dir8
+-TZ=utc touch -afhm -t $time $dirname/dir1/dir2/dir3/dir4/dir5/dir6/dir7
+-TZ=utc touch -afhm -t $time $dirname/dir1/dir2/dir3/dir4/dir5/dir6
+-TZ=utc touch -afhm -t $time $dirname/dir1/dir2/dir3/dir4/dir5
+-TZ=utc touch -afhm -t $time $dirname/dir1/dir2/dir3/dir4
+-TZ=utc touch -afhm -t $time $dirname/dir1/dir2/dir3
+-TZ=utc touch -afhm -t $time $dirname/dir1/dir2
+-TZ=utc touch -afhm -t $time $dirname/dir1
+-TZ=utc touch -afhm -t $time $dirname/file
+-TZ=utc touch -afhm -t $time $dirname
+-F=test_read_format_isorr_rockridge_moved.iso.Z
+-mkhybrid -R -uid 1 -gid 2 $dirname | compress > $F
+-uuencode $F $F > $F.uu
+-exit 1
+- */
+-
+-DEFINE_TEST(test_read_format_isorr_rr_moved)
+-{
+-	const char *refname = "test_read_format_iso_rockridge_rr_moved.iso.Z";
+-	struct archive_entry *ae;
+-	struct archive *a;
+-	const void *p;
+-	size_t size;
+-	off_t offset;
+-	int i;
+-
+-	extract_reference_file(refname);
+-	assert((a = archive_read_new()) != NULL);
+-	assertEqualInt(0, archive_read_support_compression_all(a));
+-	assertEqualInt(0, archive_read_support_format_all(a));
+-	assertEqualInt(ARCHIVE_OK,
+-	    archive_read_open_filename(a, refname, 10240));
+-
+-	/* Retrieve each of the 8 files on the ISO image and
+-	 * verify that each one is what we expect. */
+-	for (i = 0; i < 13; ++i) {
+-		assertEqualInt(0, archive_read_next_header(a, &ae));
+-
+-		if (strcmp(".", archive_entry_pathname(ae)) == 0) {
+-			/* '.' root directory. */
+-			assertEqualInt(AE_IFDIR, archive_entry_filetype(ae));
+-			assertEqualInt(2048, archive_entry_size(ae));
+-			/* Now, we read timestamp recorded by RRIP "TF". */
+-			assertEqualInt(86401, archive_entry_mtime(ae));
+-			assertEqualInt(0, archive_entry_mtime_nsec(ae));
+-			/* Now, we read links recorded by RRIP "PX". */
+-			assertEqualInt(3, archive_entry_stat(ae)->st_nlink);
+-			assertEqualInt(1, archive_entry_uid(ae));
+-			assertEqualIntA(a, ARCHIVE_EOF,
+-			    archive_read_data_block(a, &p, &size, &offset));
+-			assertEqualInt((int)size, 0);
+-		} else if (strcmp("dir1", archive_entry_pathname(ae)) == 0) {
+-			/* A directory. */
+-			assertEqualString("dir1", archive_entry_pathname(ae));
+-			assertEqualInt(AE_IFDIR, archive_entry_filetype(ae));
+-			assertEqualInt(2048, archive_entry_size(ae));
+-			assertEqualInt(86401, archive_entry_mtime(ae));
+-			assertEqualInt(86401, archive_entry_atime(ae));
+-			assertEqualInt(3, archive_entry_stat(ae)->st_nlink);
+-			assertEqualInt(1, archive_entry_uid(ae));
+-			assertEqualInt(2, archive_entry_gid(ae));
+-		} else if (strcmp("dir1/dir2",
+-		    archive_entry_pathname(ae)) == 0) {
+-			/* A directory. */
+-			assertEqualString("dir1/dir2",
+-			    archive_entry_pathname(ae));
+-			assertEqualInt(AE_IFDIR, archive_entry_filetype(ae));
+-			assertEqualInt(2048, archive_entry_size(ae));
+-			assertEqualInt(86401, archive_entry_mtime(ae));
+-			assertEqualInt(86401, archive_entry_atime(ae));
+-			assertEqualInt(3, archive_entry_stat(ae)->st_nlink);
+-			assertEqualInt(1, archive_entry_uid(ae));
+-			assertEqualInt(2, archive_entry_gid(ae));
+-		} else if (strcmp("dir1/dir2/dir3",
+-		    archive_entry_pathname(ae)) == 0) {
+-			/* A directory. */
+-			assertEqualString("dir1/dir2/dir3",
+-			    archive_entry_pathname(ae));
+-			assertEqualInt(AE_IFDIR, archive_entry_filetype(ae));
+-			assertEqualInt(2048, archive_entry_size(ae));
+-			assertEqualInt(86401, archive_entry_mtime(ae));
+-			assertEqualInt(86401, archive_entry_atime(ae));
+-			assertEqualInt(3, archive_entry_stat(ae)->st_nlink);
+-			assertEqualInt(1, archive_entry_uid(ae));
+-			assertEqualInt(2, archive_entry_gid(ae));
+-		} else if (strcmp("dir1/dir2/dir3/dir4",
+-		    archive_entry_pathname(ae)) == 0) {
+-			/* A directory. */
+-			assertEqualString("dir1/dir2/dir3/dir4",
+-			    archive_entry_pathname(ae));
+-			assertEqualInt(AE_IFDIR, archive_entry_filetype(ae));
+-			assertEqualInt(2048, archive_entry_size(ae));
+-			assertEqualInt(86401, archive_entry_mtime(ae));
+-			assertEqualInt(86401, archive_entry_atime(ae));
+-			assertEqualInt(3, archive_entry_stat(ae)->st_nlink);
+-			assertEqualInt(1, archive_entry_uid(ae));
+-			assertEqualInt(2, archive_entry_gid(ae));
+-		} else if (strcmp("dir1/dir2/dir3/dir4/dir5",
+-		    archive_entry_pathname(ae)) == 0) {
+-			/* A directory. */
+-			assertEqualString("dir1/dir2/dir3/dir4/dir5",
+-			    archive_entry_pathname(ae));
+-			assertEqualInt(AE_IFDIR, archive_entry_filetype(ae));
+-			assertEqualInt(2048, archive_entry_size(ae));
+-			assertEqualInt(86401, archive_entry_mtime(ae));
+-			assertEqualInt(86401, archive_entry_atime(ae));
+-			assertEqualInt(3, archive_entry_stat(ae)->st_nlink);
+-			assertEqualInt(1, archive_entry_uid(ae));
+-			assertEqualInt(2, archive_entry_gid(ae));
+-		} else if (strcmp("dir1/dir2/dir3/dir4/dir5/dir6",
+-		    archive_entry_pathname(ae)) == 0) {
+-			/* A directory. */
+-			assertEqualString("dir1/dir2/dir3/dir4/dir5/dir6",
+-			    archive_entry_pathname(ae));
+-			assertEqualInt(AE_IFDIR, archive_entry_filetype(ae));
+-			assertEqualInt(2048, archive_entry_size(ae));
+-			assertEqualInt(86401, archive_entry_mtime(ae));
+-			assertEqualInt(86401, archive_entry_atime(ae));
+-			assertEqualInt(3, archive_entry_stat(ae)->st_nlink);
+-			assertEqualInt(1, archive_entry_uid(ae));
+-			assertEqualInt(2, archive_entry_gid(ae));
+-		} else if (strcmp("dir1/dir2/dir3/dir4/dir5/dir6/dir7",
+-		    archive_entry_pathname(ae)) == 0) {
+-			/* A directory. */
+-			assertEqualString("dir1/dir2/dir3/dir4/dir5/dir6/dir7",
+-			    archive_entry_pathname(ae));
+-			assertEqualInt(AE_IFDIR, archive_entry_filetype(ae));
+-			assertEqualInt(2048, archive_entry_size(ae));
+-			assertEqualInt(86401, archive_entry_mtime(ae));
+-			assertEqualInt(86401, archive_entry_atime(ae));
+-			assertEqualInt(3, archive_entry_stat(ae)->st_nlink);
+-			assertEqualInt(1, archive_entry_uid(ae));
+-			assertEqualInt(2, archive_entry_gid(ae));
+-		} else if (strcmp("dir1/dir2/dir3/dir4/dir5/dir6/dir7"
+-		   "/dir8",
+-		    archive_entry_pathname(ae)) == 0) {
+-			/* A directory. */
+-			assertEqualString("dir1/dir2/dir3/dir4/dir5/dir6/dir7"
+-			    "/dir8",
+-			    archive_entry_pathname(ae));
+-			assertEqualInt(AE_IFDIR, archive_entry_filetype(ae));
+-			assertEqualInt(2048, archive_entry_size(ae));
+-			assertEqualInt(86401, archive_entry_mtime(ae));
+-			assertEqualInt(86401, archive_entry_atime(ae));
+-			assertEqualInt(3, archive_entry_stat(ae)->st_nlink);
+-			assertEqualInt(1, archive_entry_uid(ae));
+-			assertEqualInt(2, archive_entry_gid(ae));
+-		} else if (strcmp("dir1/dir2/dir3/dir4/dir5/dir6/dir7"
+-		   "/dir8/dir9",
+-		    archive_entry_pathname(ae)) == 0) {
+-			/* A directory. */
+-			assertEqualString("dir1/dir2/dir3/dir4/dir5/dir6/dir7"
+-			    "/dir8/dir9",
+-			    archive_entry_pathname(ae));
+-			assertEqualInt(AE_IFDIR, archive_entry_filetype(ae));
+-			assertEqualInt(2048, archive_entry_size(ae));
+-			assertEqualInt(86401, archive_entry_mtime(ae));
+-			assertEqualInt(86401, archive_entry_atime(ae));
+-			assertEqualInt(3, archive_entry_stat(ae)->st_nlink);
+-			assertEqualInt(1, archive_entry_uid(ae));
+-			assertEqualInt(2, archive_entry_gid(ae));
+-		} else if (strcmp("dir1/dir2/dir3/dir4/dir5/dir6/dir7"
+-		   "/dir8/dir9/dir10",
+-		    archive_entry_pathname(ae)) == 0) {
+-			/* A directory. */
+-			assertEqualString("dir1/dir2/dir3/dir4/dir5/dir6/dir7"
+-			    "/dir8/dir9/dir10",
+-			    archive_entry_pathname(ae));
+-			assertEqualInt(AE_IFDIR, archive_entry_filetype(ae));
+-			assertEqualInt(2048, archive_entry_size(ae));
+-			assertEqualInt(86401, archive_entry_mtime(ae));
+-			assertEqualInt(86401, archive_entry_atime(ae));
+-			assertEqualInt(2, archive_entry_stat(ae)->st_nlink);
+-			assertEqualInt(1, archive_entry_uid(ae));
+-			assertEqualInt(2, archive_entry_gid(ae));
+-		} else if (strcmp("file", archive_entry_pathname(ae)) == 0) {
+-			/* A regular file. */
+-			assertEqualString("file", archive_entry_pathname(ae));
+-			assertEqualInt(AE_IFREG, archive_entry_filetype(ae));
+-			assertEqualInt(12345684, archive_entry_size(ae));
+-			assertEqualInt(0,
+-			    archive_read_data_block(a, &p, &size, &offset));
+-			assertEqualInt(0, offset);
+-			assertEqualMem(p, "hello\n", 6);
+-			assertEqualInt(86401, archive_entry_mtime(ae));
+-			assertEqualInt(86401, archive_entry_atime(ae));
+-			assertEqualInt(1, archive_entry_stat(ae)->st_nlink);
+-			assertEqualInt(1, archive_entry_uid(ae));
+-			assertEqualInt(2, archive_entry_gid(ae));
+-		} else if (strcmp("dir1/dir2/dir3/dir4/dir5/dir6/dir7"
+-		    "/dir8/dir9/dir10/deep",
+-		    archive_entry_pathname(ae)) == 0) {
+-			/* A regular file. */
+-			assertEqualString("dir1/dir2/dir3/dir4/dir5/dir6/dir7"
+-			    "/dir8/dir9/dir10/deep",
+-			    archive_entry_pathname(ae));
+-			assertEqualInt(AE_IFREG, archive_entry_filetype(ae));
+-			assertEqualInt(12345684, archive_entry_size(ae));
+-			assertEqualInt(0,
+-			    archive_read_data_block(a, &p, &size, &offset));
+-			assertEqualInt(0, offset);
+-			assertEqualMem(p, "hello\n", 6);
+-			assertEqualInt(86401, archive_entry_mtime(ae));
+-			assertEqualInt(86401, archive_entry_atime(ae));
+-			assertEqualInt(1, archive_entry_stat(ae)->st_nlink);
+-			assertEqualInt(1, archive_entry_uid(ae));
+-			assertEqualInt(2, archive_entry_gid(ae));
+-		} else {
+-			failure("Saw a file that shouldn't have been there");
+-			assertEqualString(archive_entry_pathname(ae), "");
+-		}
+-	}
+-
+-	/* End of archive. */
+-	assertEqualInt(ARCHIVE_EOF, archive_read_next_header(a, &ae));
+-
+-	/* Verify archive format. */
+-	assertEqualInt(archive_compression(a), ARCHIVE_COMPRESSION_COMPRESS);
+-	assertEqualInt(archive_format(a), ARCHIVE_FORMAT_ISO9660_ROCKRIDGE);
+-
+-	/* Close the archive. */
+-	assertEqualInt(0, archive_read_close(a));
+-	assertEqualInt(0, archive_read_finish(a));
+-}
+-
+-
+diff --git a/libarchive/test/test_read_format_tz.c b/libarchive/test/test_read_format_tz.c
+deleted file mode 100644
+index eb06601..0000000
+--- a/libarchive/test/test_read_format_tz.c
++++ /dev/null
+@@ -1,61 +0,0 @@
+-/*-
+- * Copyright (c) 2003-2007 Tim Kientzle
+- * All rights reserved.
+- *
+- * Redistribution and use in source and binary forms, with or without
+- * modification, are permitted provided that the following conditions
+- * are met:
+- * 1. Redistributions of source code must retain the above copyright
+- *    notice, this list of conditions and the following disclaimer.
+- * 2. Redistributions in binary form must reproduce the above copyright
+- *    notice, this list of conditions and the following disclaimer in the
+- *    documentation and/or other materials provided with the distribution.
+- *
+- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR(S) ``AS IS'' AND ANY EXPRESS OR
+- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+- * IN NO EVENT SHALL THE AUTHOR(S) BE LIABLE FOR ANY DIRECT, INDIRECT,
+- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+- */
+-#include "test.h"
+-__FBSDID("$FreeBSD: head/lib/libarchive/test/test_read_format_tz.c 189381 2009-03-05 00:31:48Z kientzle $");
+-
+-static unsigned char archive[] = {
+-31,157,144,'.',0,8,28,'H',176,160,193,131,8,19,'*','\\',200,176,'!','B',24,
+-16,'o',212,168,1,2,0,196,24,18,'a','T',188,152,'q','#',196,143,' ','5',198,
+-128,'1','c',6,13,24,'4','0',206,176,1,2,198,200,26,'6','b',0,0,'Q',195,161,
+-205,155,'8','s',234,4,'P','g',14,157,'0','r',',',194,160,147,166,205,206,
+-132,'D',141,30,'=',24,'R',163,'P',144,21,151,'J',157,'J',181,170,213,171,
+-'X',179,'j',221,202,181,171,215,175,'`',195,138,29,'K',182,172,217,179,'h',
+-211,170,']',203,182,173,219,183,'g',1};
+-
+-DEFINE_TEST(test_read_format_tz)
+-{
+-	struct archive_entry *ae;
+-	struct archive *a;
+-	assert((a = archive_read_new()) != NULL);
+-	assertEqualIntA(a, ARCHIVE_OK,
+-	    archive_read_support_compression_all(a));
+-	assertEqualIntA(a, ARCHIVE_OK, archive_read_support_format_all(a));
+-	assertEqualIntA(a, ARCHIVE_OK,
+-	    archive_read_open_memory(a, archive, sizeof(archive)));
+-	assertEqualIntA(a, ARCHIVE_OK, archive_read_next_header(a, &ae));
+-	failure("archive_compression_name(a)=\"%s\"",
+-	    archive_compression_name(a));
+-	assertEqualInt(archive_compression(a), ARCHIVE_COMPRESSION_COMPRESS);
+-	failure("archive_format_name(a)=\"%s\"", archive_format_name(a));
+-	assertEqualInt(archive_format(a), ARCHIVE_FORMAT_TAR_USTAR);
+-	assertEqualIntA(a, ARCHIVE_OK, archive_read_close(a));
+-#if ARCHIVE_VERSION_NUMBER < 2000000
+-	archive_read_finish(a);
+-#else
+-	assertEqualInt(ARCHIVE_OK, archive_read_finish(a));
+-#endif
+-}
+-
+-
+diff --git a/libarchive/test/test_write_disk.c b/libarchive/test/test_write_disk.c
+deleted file mode 100644
+index 169f4f2..0000000
+--- a/libarchive/test/test_write_disk.c
++++ /dev/null
+@@ -1,332 +0,0 @@
+-/*-
+- * Copyright (c) 2003-2007 Tim Kientzle
+- * All rights reserved.
+- *
+- * Redistribution and use in source and binary forms, with or without
+- * modification, are permitted provided that the following conditions
+- * are met:
+- * 1. Redistributions of source code must retain the above copyright
+- *    notice, this list of conditions and the following disclaimer.
+- * 2. Redistributions in binary form must reproduce the above copyright
+- *    notice, this list of conditions and the following disclaimer in the
+- *    documentation and/or other materials provided with the distribution.
+- *
+- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR(S) ``AS IS'' AND ANY EXPRESS OR
+- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+- * IN NO EVENT SHALL THE AUTHOR(S) BE LIABLE FOR ANY DIRECT, INDIRECT,
+- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+- */
+-#include "test.h"
+-__FBSDID("$FreeBSD: head/lib/libarchive/test/test_write_disk.c 201247 2009-12-30 05:59:21Z kientzle $");
+-
+-#if ARCHIVE_VERSION_NUMBER >= 1009000
+-
+-#define UMASK 022
+-/*
+- * When comparing mode values, ignore high-order bits
+- * that are set on some OSes.  This should cover the bits
+- * we're interested in (standard mode bits + file type bits)
+- * while ignoring extra markers such as Haiku/BeOS index
+- * flags.
+- */
+-#define MODE_MASK 0777777
+-
+-static void create(struct archive_entry *ae, const char *msg)
+-{
+-	struct archive *ad;
+-	struct stat st;
+-
+-	/* Write the entry to disk. */
+-	assert((ad = archive_write_disk_new()) != NULL);
+-	failure("%s", msg);
+-	assertEqualIntA(ad, 0, archive_write_header(ad, ae));
+-	assertEqualIntA(ad, 0, archive_write_finish_entry(ad));
+-#if ARCHIVE_VERSION_NUMBER < 2000000
+-	archive_write_finish(ad);
+-#else
+-	assertEqualInt(0, archive_write_finish(ad));
+-#endif
+-	/* Test the entries on disk. */
+-	assert(0 == stat(archive_entry_pathname(ae), &st));
+-	failure("%s", msg);
+-
+-#if !defined(_WIN32) || defined(__CYGWIN__)
+-	/* When verifying a dir, ignore the S_ISGID bit, as some systems set
+-	 * that automatically. */
+-	if (archive_entry_filetype(ae) == AE_IFDIR)
+-		st.st_mode &= ~S_ISGID;
+-	assertEqualInt(st.st_mode & MODE_MASK,
+-	    archive_entry_mode(ae) & ~UMASK & MODE_MASK);
+-#endif
+-}
+-
+-static void create_reg_file(struct archive_entry *ae, const char *msg)
+-{
+-	static const char data[]="abcdefghijklmnopqrstuvwxyz";
+-	struct archive *ad;
+-
+-	/* Write the entry to disk. */
+-	assert((ad = archive_write_disk_new()) != NULL);
+-        archive_write_disk_set_options(ad, ARCHIVE_EXTRACT_TIME);
+-	failure("%s", msg);
+-	/*
+-	 * A touchy API design issue: archive_write_data() does (as of
+-	 * 2.4.12) enforce the entry size as a limit on the data
+-	 * written to the file.  This was not enforced prior to
+-	 * 2.4.12.  The change was prompted by the refined
+-	 * hardlink-restore semantics introduced at that time.  In
+-	 * short, libarchive needs to know whether a "hardlink entry"
+-	 * is going to overwrite the contents so that it can know
+-	 * whether or not to open the file for writing.  This implies
+-	 * that there is a fundamental semantic difference between an
+-	 * entry with a zero size and one with a non-zero size in the
+-	 * case of hardlinks and treating the hardlink case
+-	 * differently from the regular file case is just asking for
+-	 * trouble.  So, a zero size must always mean that no data
+-	 * will be accepted, which is consistent with the file size in
+-	 * the entry being a maximum size.
+-	 */
+-	archive_entry_set_size(ae, sizeof(data));
+-	archive_entry_set_mtime(ae, 123456789, 0);
+-	assertEqualIntA(ad, 0, archive_write_header(ad, ae));
+-	assertEqualInt(sizeof(data), archive_write_data(ad, data, sizeof(data)));
+-	assertEqualIntA(ad, 0, archive_write_finish_entry(ad));
+-#if ARCHIVE_VERSION_NUMBER < 2000000
+-	archive_write_finish(ad);
+-#else
+-	assertEqualInt(0, archive_write_finish(ad));
+-#endif
+-	/* Test the entries on disk. */
+-	assertIsReg(archive_entry_pathname(ae), archive_entry_mode(ae) & 0777);
+-	assertFileSize(archive_entry_pathname(ae), sizeof(data));
+-	/* test_write_disk_times has more detailed tests of this area. */
+-	assertFileMtime(archive_entry_pathname(ae), 123456789, 0);
+-        failure("No atime given, so atime should get set to current time");
+-	assertFileAtimeRecent(archive_entry_pathname(ae));
+-}
+-
+-static void create_reg_file2(struct archive_entry *ae, const char *msg)
+-{
+-	const int datasize = 100000;
+-	char *data;
+-	struct archive *ad;
+-	int i;
+-
+-	data = malloc(datasize);
+-	for (i = 0; i < datasize; i++)
+-		data[i] = (char)(i % 256);
+-
+-	/* Write the entry to disk. */
+-	assert((ad = archive_write_disk_new()) != NULL);
+-	failure("%s", msg);
+-	/*
+-	 * See above for an explanation why this next call
+-	 * is necessary.
+-	 */
+-	archive_entry_set_size(ae, datasize);
+-	assertEqualIntA(ad, 0, archive_write_header(ad, ae));
+-	for (i = 0; i < datasize - 999; i += 1000) {
+-		assertEqualIntA(ad, ARCHIVE_OK,
+-		    archive_write_data_block(ad, data + i, 1000, i));
+-	}
+-	assertEqualIntA(ad, 0, archive_write_finish_entry(ad));
+-	assertEqualInt(0, archive_write_finish(ad));
+-
+-	/* Test the entries on disk. */
+-	assertIsReg(archive_entry_pathname(ae), archive_entry_mode(ae) & 0777);
+-	assertFileSize(archive_entry_pathname(ae), i);
+-	assertFileContents(data, datasize, archive_entry_pathname(ae));
+-	free(data);
+-}
+-
+-static void create_reg_file3(struct archive_entry *ae, const char *msg)
+-{
+-	static const char data[]="abcdefghijklmnopqrstuvwxyz";
+-	struct archive *ad;
+-	struct stat st;
+-
+-	/* Write the entry to disk. */
+-	assert((ad = archive_write_disk_new()) != NULL);
+-	failure("%s", msg);
+-	/* Set the size smaller than the data and verify the truncation. */
+-	archive_entry_set_size(ae, 5);
+-	assertEqualIntA(ad, 0, archive_write_header(ad, ae));
+-	assertEqualInt(5, archive_write_data(ad, data, sizeof(data)));
+-	assertEqualIntA(ad, 0, archive_write_finish_entry(ad));
+-#if ARCHIVE_VERSION_NUMBER < 2000000
+-	archive_write_finish(ad);
+-#else
+-	assertEqualInt(0, archive_write_finish(ad));
+-#endif
+-	/* Test the entry on disk. */
+-	assert(0 == stat(archive_entry_pathname(ae), &st));
+-	failure("st.st_mode=%o archive_entry_mode(ae)=%o",
+-	    st.st_mode, archive_entry_mode(ae));
+-#if !defined(_WIN32) || defined(__CYGWIN__)
+-	assertEqualInt(st.st_mode, (archive_entry_mode(ae) & ~UMASK));
+-#endif
+-	assertEqualInt(st.st_size, 5);
+-}
+-
+-
+-static void create_reg_file4(struct archive_entry *ae, const char *msg)
+-{
+-	static const char data[]="abcdefghijklmnopqrstuvwxyz";
+-	struct archive *ad;
+-	struct stat st;
+-
+-	/* Write the entry to disk. */
+-	assert((ad = archive_write_disk_new()) != NULL);
+-	/* Leave the size unset.  The data should not be truncated. */
+-	assertEqualIntA(ad, 0, archive_write_header(ad, ae));
+-	assertEqualInt(ARCHIVE_OK,
+-	    archive_write_data_block(ad, data, sizeof(data), 0));
+-	assertEqualIntA(ad, 0, archive_write_finish_entry(ad));
+-#if ARCHIVE_VERSION_NUMBER < 2000000
+-	archive_write_finish(ad);
+-#else
+-	assertEqualInt(0, archive_write_finish(ad));
+-#endif
+-	/* Test the entry on disk. */
+-	assert(0 == stat(archive_entry_pathname(ae), &st));
+-	failure("st.st_mode=%o archive_entry_mode(ae)=%o",
+-	    st.st_mode, archive_entry_mode(ae));
+-#if !defined(_WIN32) || defined(__CYGWIN__)
+-	assertEqualInt(st.st_mode, (archive_entry_mode(ae) & ~UMASK));
+-#endif
+-	failure(msg);
+-	assertEqualInt(st.st_size, sizeof(data));
+-}
+-
+-#if defined(_WIN32) && !defined(__CYGWIN__)
+-static void create_reg_file_win(struct archive_entry *ae, const char *msg)
+-{
+-	static const char data[]="abcdefghijklmnopqrstuvwxyz";
+-	struct archive *ad;
+-	struct stat st;
+-	char *p, *fname;
+-	size_t l;
+-
+-	/* Write the entry to disk. */
+-	assert((ad = archive_write_disk_new()) != NULL);
+-        archive_write_disk_set_options(ad, ARCHIVE_EXTRACT_TIME);
+-	failure("%s", msg);
+-	archive_entry_set_size(ae, sizeof(data));
+-	archive_entry_set_mtime(ae, 123456789, 0);
+-	assertEqualIntA(ad, 0, archive_write_header(ad, ae));
+-	assertEqualInt(sizeof(data), archive_write_data(ad, data, sizeof(data)));
+-	assertEqualIntA(ad, 0, archive_write_finish_entry(ad));
+-#if ARCHIVE_VERSION_NUMBER < 2000000
+-	archive_write_finish(ad);
+-#else
+-	assertEqualInt(0, archive_write_finish(ad));
+-#endif
+-	/* Test the entries on disk. */
+-	l = strlen(archive_entry_pathname(ae));
+-	fname = malloc(l + 1);
+-	assert(NULL != fname);
+-	strcpy(fname, archive_entry_pathname(ae));
+-	/* Replace unusable characters in Windows to '_' */
+-	for (p = fname; *p != '\0'; p++)
+-		if (*p == ':' || *p == '*' || *p == '?' ||
+-		    *p == '"' || *p == '<' || *p == '>' || *p == '|')
+-			*p = '_';
+-	assert(0 == stat(fname, &st));
+-	failure("st.st_mode=%o archive_entry_mode(ae)=%o",
+-	    st.st_mode, archive_entry_mode(ae));
+-	assertEqualInt(st.st_size, sizeof(data));
+-}
+-#endif /* _WIN32 && !__CYGWIN__ */
+-#endif
+-
+-DEFINE_TEST(test_write_disk)
+-{
+-#if ARCHIVE_VERSION_NUMBER < 1009000
+-	skipping("archive_write_disk interface");
+-#else
+-	struct archive_entry *ae;
+-
+-	/* Force the umask to something predictable. */
+-	assertUmask(UMASK);
+-
+-	/* A regular file. */
+-	assert((ae = archive_entry_new()) != NULL);
+-	archive_entry_copy_pathname(ae, "file");
+-	archive_entry_set_mode(ae, S_IFREG | 0755);
+-	create_reg_file(ae, "Test creating a regular file");
+-	archive_entry_free(ae);
+-
+-	/* Another regular file. */
+-	assert((ae = archive_entry_new()) != NULL);
+-	archive_entry_copy_pathname(ae, "file2");
+-	archive_entry_set_mode(ae, S_IFREG | 0755);
+-	create_reg_file2(ae, "Test creating another regular file");
+-	archive_entry_free(ae);
+-
+-	/* A regular file with a size restriction */
+-	assert((ae = archive_entry_new()) != NULL);
+-	archive_entry_copy_pathname(ae, "file3");
+-	archive_entry_set_mode(ae, S_IFREG | 0755);
+-	create_reg_file3(ae, "Regular file with size restriction");
+-	archive_entry_free(ae);
+-
+-	/* A regular file with an unspecified size */
+-	assert((ae = archive_entry_new()) != NULL);
+-	archive_entry_copy_pathname(ae, "file3");
+-	archive_entry_set_mode(ae, S_IFREG | 0755);
+-	create_reg_file4(ae, "Regular file with unspecified size");
+-	archive_entry_free(ae);
+-
+-	/* A regular file over an existing file */
+-	assert((ae = archive_entry_new()) != NULL);
+-	archive_entry_copy_pathname(ae, "file");
+-	archive_entry_set_mode(ae, S_IFREG | 0724);
+-	create(ae, "Test creating a file over an existing file.");
+-	archive_entry_free(ae);
+-
+-	/* A directory. */
+-	assert((ae = archive_entry_new()) != NULL);
+-	archive_entry_copy_pathname(ae, "dir");
+-	archive_entry_set_mode(ae, S_IFDIR | 0555);
+-	create(ae, "Test creating a regular dir.");
+-	archive_entry_free(ae);
+-
+-	/* A directory over an existing file. */
+-	assert((ae = archive_entry_new()) != NULL);
+-	archive_entry_copy_pathname(ae, "file");
+-	archive_entry_set_mode(ae, S_IFDIR | 0742);
+-	create(ae, "Test creating a dir over an existing file.");
+-	archive_entry_free(ae);
+-
+-	/* A file over an existing dir. */
+-	assert((ae = archive_entry_new()) != NULL);
+-	archive_entry_copy_pathname(ae, "file");
+-	archive_entry_set_mode(ae, S_IFREG | 0744);
+-	create(ae, "Test creating a file over an existing dir.");
+-	archive_entry_free(ae);
+-
+-#if defined(_WIN32) && !defined(__CYGWIN__)
+-	/* A file with unusable characters in its file name. */
+-	assert((ae = archive_entry_new()) != NULL);
+-	archive_entry_copy_pathname(ae, "f:i*l?e\"f<i>l|e");
+-	archive_entry_set_mode(ae, S_IFREG | 0755);
+-	create_reg_file_win(ae, "Test creating a regular file"
+-	    " with unusable characters in its file name");
+-	archive_entry_free(ae);
+-
+-	/* A file with unusable characters in its directory name. */
+-	assert((ae = archive_entry_new()) != NULL);
+-	archive_entry_copy_pathname(ae, "d:i*r?e\"c<t>o|ry/file1");
+-	archive_entry_set_mode(ae, S_IFREG | 0755);
+-	create_reg_file_win(ae, "Test creating a regular file"
+-	    " with unusable characters in its file name");
+-	archive_entry_free(ae);
+-#endif /* _WIN32 && !__CYGWIN__ */
+-#endif
+-}
+diff --git a/libarchive/test/test_write_disk_times.c b/libarchive/test/test_write_disk_times.c
+deleted file mode 100644
+index 9ecbff6..0000000
+--- a/libarchive/test/test_write_disk_times.c
++++ /dev/null
+@@ -1,167 +0,0 @@
+-/*-
+- * Copyright (c) 2003-2008 Tim Kientzle
+- * All rights reserved.
+- *
+- * Redistribution and use in source and binary forms, with or without
+- * modification, are permitted provided that the following conditions
+- * are met:
+- * 1. Redistributions of source code must retain the above copyright
+- *    notice, this list of conditions and the following disclaimer.
+- * 2. Redistributions in binary form must reproduce the above copyright
+- *    notice, this list of conditions and the following disclaimer in the
+- *    documentation and/or other materials provided with the distribution.
+- *
+- * THIS SOFTWARE IS PROVIDED BY THE AUTHOR(S) ``AS IS'' AND ANY EXPRESS OR
+- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+- * IN NO EVENT SHALL THE AUTHOR(S) BE LIABLE FOR ANY DIRECT, INDIRECT,
+- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+- */
+-#include "test.h"
+-__FBSDID("$FreeBSD: head/lib/libarchive/test/test_write_disk_times.c 201247 2009-12-30 05:59:21Z kientzle $");
+-
+-/*
+- * Exercise time restores in archive_write_disk(), including
+- * correct handling of omitted time values.
+- * On FreeBSD, we also test birthtime and high-res time restores.
+- */
+-
+-DEFINE_TEST(test_write_disk_times)
+-{
+-	struct archive *a;
+-	struct archive_entry *ae;
+-
+-	/* Create an archive_write_disk object. */
+-	assert((a = archive_write_disk_new()) != NULL);
+-	assertEqualInt(ARCHIVE_OK,
+-	    archive_write_disk_set_options(a, ARCHIVE_EXTRACT_TIME));
+-
+-	/*
+-	 * Easy case: mtime and atime both specified.
+-	 */
+-	assert((ae = archive_entry_new()) != NULL);
+-	archive_entry_copy_pathname(ae, "file1");
+-	archive_entry_set_mode(ae, S_IFREG | 0777);
+-	archive_entry_set_atime(ae, 123456, 0);
+-	archive_entry_set_mtime(ae, 234567, 0);
+-	assertEqualInt(ARCHIVE_OK, archive_write_header(a, ae));
+-	assertEqualInt(ARCHIVE_OK, archive_write_finish_entry(a));
+-	archive_entry_free(ae);
+-	/* Verify */
+-	assertFileAtime("file1", 123456, 0);
+-	assertFileMtime("file1", 234567, 0);
+-
+-	/*
+-	 * mtime specified, but not atime
+-	 */
+-	assert((ae = archive_entry_new()) != NULL);
+-	archive_entry_copy_pathname(ae, "file2");
+-	archive_entry_set_mode(ae, S_IFREG | 0777);
+-	archive_entry_set_mtime(ae, 234567, 0);
+-	assertEqualInt(ARCHIVE_OK, archive_write_header(a, ae));
+-	assertEqualInt(ARCHIVE_OK, archive_write_finish_entry(a));
+-	archive_entry_free(ae);
+-	assertFileMtime("file2", 234567, 0);
+-	assertFileAtimeRecent("file2");
+-
+-	/*
+-	 * atime specified, but not mtime
+-	 */
+-	assert((ae = archive_entry_new()) != NULL);
+-	archive_entry_copy_pathname(ae, "file3");
+-	archive_entry_set_mode(ae, S_IFREG | 0777);
+-	archive_entry_set_atime(ae, 345678, 0);
+-	assertEqualInt(ARCHIVE_OK, archive_write_header(a, ae));
+-	assertEqualInt(ARCHIVE_OK, archive_write_finish_entry(a));
+-	archive_entry_free(ae);
+-	/* Verify: Current mtime and atime as specified. */
+-	assertFileAtime("file3", 345678, 0);
+-	assertFileMtimeRecent("file3");
+-
+-	/*
+-	 * Neither atime nor mtime specified.
+-	 */
+-	assert((ae = archive_entry_new()) != NULL);
+-	archive_entry_copy_pathname(ae, "file4");
+-	archive_entry_set_mode(ae, S_IFREG | 0777);
+-	assertEqualInt(ARCHIVE_OK, archive_write_header(a, ae));
+-	assertEqualInt(ARCHIVE_OK, archive_write_finish_entry(a));
+-	archive_entry_free(ae);
+-	/* Verify: Current mtime and atime. */
+-	assertFileAtimeRecent("file4");
+-	assertFileMtimeRecent("file4");
+-
+-#if defined(__FreeBSD__)
+-	/*
+-	 * High-res mtime and atime on FreeBSD.
+-	 */
+-	assert((ae = archive_entry_new()) != NULL);
+-	archive_entry_copy_pathname(ae, "file10");
+-	archive_entry_set_mode(ae, S_IFREG | 0777);
+-	archive_entry_set_atime(ae, 1234567, 23456);
+-	archive_entry_set_mtime(ae, 2345678, 4567);
+-	assertEqualInt(ARCHIVE_OK, archive_write_header(a, ae));
+-	assertEqualInt(ARCHIVE_OK, archive_write_finish_entry(a));
+-	archive_entry_free(ae);
+-	/* Verify */
+-	assertFileMtime("file10", 2345678, 4567);
+-	assertFileAtime("file10", 1234567, 23456);
+-
+-	/*
+-	 * Birthtime, mtime and atime on FreeBSD
+-	 */
+-	assert((ae = archive_entry_new()) != NULL);
+-	archive_entry_copy_pathname(ae, "file11");
+-	archive_entry_set_mode(ae, S_IFREG | 0777);
+-	archive_entry_set_atime(ae, 1234567, 23456);
+-	archive_entry_set_birthtime(ae, 3456789, 12345);
+-	/* mtime must be later than birthtime! */
+-	archive_entry_set_mtime(ae, 12345678, 4567);
+-	assertEqualInt(ARCHIVE_OK, archive_write_header(a, ae));
+-	assertEqualInt(ARCHIVE_OK, archive_write_finish_entry(a));
+-	archive_entry_free(ae);
+-	/* Verify */
+-	assertFileAtime("file11", 1234567, 23456);
+-	assertFileBirthtime("file11", 3456789, 12345);
+-	assertFileMtime("file11", 12345678, 4567);
+-
+-	/*
+-	 * Birthtime only on FreeBSD.
+-	 */
+-	assert((ae = archive_entry_new()) != NULL);
+-	archive_entry_copy_pathname(ae, "file12");
+-	archive_entry_set_mode(ae, S_IFREG | 0777);
+-	archive_entry_set_birthtime(ae, 3456789, 12345);
+-	assertEqualInt(ARCHIVE_OK, archive_write_header(a, ae));
+-	assertEqualInt(ARCHIVE_OK, archive_write_finish_entry(a));
+-	archive_entry_free(ae);
+-	/* Verify */
+-	assertFileAtimeRecent("file12");
+-	assertFileBirthtime("file12", 3456789, 12345);
+-	assertFileMtimeRecent("file12");
+-
+-	/*
+-	 * mtime only on FreeBSD.
+-	 */
+-	assert((ae = archive_entry_new()) != NULL);
+-	archive_entry_copy_pathname(ae, "file13");
+-	archive_entry_set_mode(ae, S_IFREG | 0777);
+-	archive_entry_set_mtime(ae, 4567890, 23456);
+-	assertEqualInt(ARCHIVE_OK, archive_write_header(a, ae));
+-	assertEqualInt(ARCHIVE_OK, archive_write_finish_entry(a));
+-	archive_entry_free(ae);
+-	/* Verify */
+-	assertFileAtimeRecent("file13");
+-	assertFileBirthtime("file13", 4567890, 23456);
+-	assertFileMtime("file13", 4567890, 23456);
+-#else
+-	skipping("Platform-specific time restore tests");
+-#endif
+-
+-	archive_write_finish(a);
+-}
