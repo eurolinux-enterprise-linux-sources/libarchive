@@ -1,6 +1,6 @@
 Name:           libarchive
 Version:        2.8.3
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        A library for handling streaming archive formats 
 
 Group:          System Environment/Libraries
@@ -25,6 +25,10 @@ BuildRequires: libxml2-devel
 # from upstream
 # https://bugzilla.redhat.com/show_bug.cgi?id=597243
 Patch0: libarchive-2.8.4-iso9660-data-types.patch
+# CVE-2010-4666 CVE-2011-1777 CVE-2011-1778 CVE-2011-1779 libarchive: multiple vulnerabilities in version 2.8.4
+# https://bugzilla.redhat.com/show_bug.cgi?id=739940
+Patch1: CVE-2011-1777.patch
+Patch2: CVE-2011-1778.patch
 
 
 %description
@@ -46,6 +50,8 @@ developing applications that use %{name}.
 %prep
 %setup -q
 %patch0 -p0 -b .iso9660-testsuite
+%patch1 -p1 -b .CVE-2011-1777
+%patch2 -p1 -b .CVE-2011-1778
 
 
 %build
@@ -88,6 +94,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Oct  3 2011 Tomas Bzatek <tbzatek@redhat.com> - 2.8.3-3
+- Security fixes (CVE-2011-1777, CVE-2011-1778) (#739939)
+
 * Fri Jun 25 2010 Tomas Bzatek <tbzatek@redhat.com> - 2.8.3-2
 - Fix ISO9660 reader data type mismatches (#597243)
 
