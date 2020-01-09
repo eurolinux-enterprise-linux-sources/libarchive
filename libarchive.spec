@@ -1,6 +1,6 @@
 Name:           libarchive
 Version:        2.8.3
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        A library for handling streaming archive formats 
 
 Group:          System Environment/Libraries
@@ -94,8 +94,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Feb  3 2012 Tomas Bzatek <tbzatek@redhat.com> - 2.8.3-4
+- Updated CVE-2011-1777 fix (#783375)
+
 * Mon Oct  3 2011 Tomas Bzatek <tbzatek@redhat.com> - 2.8.3-3
-- Security fixes (CVE-2011-1777, CVE-2011-1778) (#739939)
+- Security fixes (CVE-2011-1777, CVE-2011-1778) (#739940)
 
 * Fri Jun 25 2010 Tomas Bzatek <tbzatek@redhat.com> - 2.8.3-2
 - Fix ISO9660 reader data type mismatches (#597243)
