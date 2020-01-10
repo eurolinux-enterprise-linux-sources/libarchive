@@ -1,6 +1,6 @@
 Name:           libarchive
 Version:        3.1.2
-Release:        10%{?dist}
+Release:        12%{?dist}
 Summary:        A library for handling streaming archive formats
 
 Group:          System Environment/Libraries
@@ -54,6 +54,11 @@ Patch21: libarchive-3.1.2-CVE-2016-5844.patch
 Patch22: libarchive-3.1.2-CVE-2016-1541.patch
 Patch23: libarchive-3.1.2-CVE-2016-5418.patch
 Patch24: libarchive-3.1.2-CVE-2016-5418-variation.patch
+Patch25: libarchive-3.1.2-CVE-2017-14503.patch
+Patch26: libarchive-3.1.2-CVE-2019-1000019.patch
+Patch27: libarchive-3.1.2-CVE-2019-1000020.patch
+Patch28: libarchive-3.3.2-CVE-2018-1000878.patch
+Patch29: libarchive-3.3.2-CVE-2018-1000877.patch
 
 %description
 Libarchive is a programming library that can create and read several different
@@ -122,6 +127,11 @@ libarchive packages.
 %patch22 -p1 -b .CVE-2016-1541
 %patch23 -p1 -b .CVE-2016-5418
 %patch24 -p1 -b .CVE-2016-5418-var
+%patch25 -p1 -b .CVE-2017-14503
+%patch26 -p1 -b .CVE-2019-1000019
+%patch27 -p1 -b .CVE-2019-1000020
+%patch28 -p1 -b .CVE-2019-1000878
+%patch29 -p1 -b .CVE-2019-1000877
 
 
 %build
@@ -215,6 +225,15 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Tue Apr 30 2019 Ondrej Dubaj <odubaj@redhat.com> - 3.1.2-12
+- fixed use after free in RAR decoder (#1700749)
+- fixed double free in RAR decoder (#1700748)
+
+* Fri Feb 22 2019 Pavel Raiskup <praiskup@redhat.com> - 3.1.2-11
+- fix out-of-bounds read within lha_read_data_none() (CVE-2017-14503)
+- fix crash on crafted 7zip archives (CVE-2019-1000019)
+- fix infinite loop in ISO9660 (CVE-2019-1000020)
+
 * Fri Aug 12 2016 Petr Kubat <pkubat@redhat.com> - 3.1.2-10
 - Fixes variation of CVE-2016-5418: Hard links could include ".." in their path.
 
