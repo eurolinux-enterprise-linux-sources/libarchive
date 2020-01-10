@@ -1,6 +1,6 @@
 Name:           libarchive
 Version:        3.1.2
-Release:        12%{?dist}
+Release:        5%{?dist}
 Summary:        A library for handling streaming archive formats
 
 Group:          System Environment/Libraries
@@ -29,36 +29,6 @@ BuildRequires: automake autoconf libtool
 Patch0: libarchive-3.1.3-CVE-2013-0211_read_buffer_overflow.patch
 
 Patch1: libarchive-3.1.2-testsuite.patch
-
-# A bunch of security patches from 2016 summer
-Patch2: libarchive-3.1.2-rhbz-1347085.patch
-Patch3: libarchive-3.1.2-rhbz-1347086.patch
-Patch4: libarchive-3.1.2-CVE-2015-8916-CVE-2015-8917.patch
-Patch5: libarchive-3.1.2-CVE-2015-8919.patch
-Patch6: libarchive-3.1.2-CVE-2015-8920.patch
-Patch7: libarchive-3.1.2-CVE-2015-8921.patch
-Patch8: libarchive-3.1.2-CVE-2015-8922.patch
-Patch9: libarchive-3.1.2-CVE-2015-8923.patch
-Patch10: libarchive-3.1.2-CVE-2015-8924.patch
-Patch11: libarchive-3.1.2-CVE-2015-8925.patch
-Patch12: libarchive-3.1.2-CVE-2015-8926.patch
-Patch13: libarchive-3.1.2-CVE-2015-8928.patch
-Patch14: libarchive-3.1.2-CVE-2015-8930.patch
-Patch15: libarchive-3.1.2-CVE-2015-8931.patch
-Patch16: libarchive-3.1.2-CVE-2015-8932.patch
-Patch17: libarchive-3.1.2-CVE-2015-8934.patch
-Patch18: libarchive-3.1.2-CVE-2016-4300.patch
-Patch19: libarchive-3.1.2-CVE-2016-4302.patch
-Patch20: libarchive-3.1.2-CVE-2016-4809.patch
-Patch21: libarchive-3.1.2-CVE-2016-5844.patch
-Patch22: libarchive-3.1.2-CVE-2016-1541.patch
-Patch23: libarchive-3.1.2-CVE-2016-5418.patch
-Patch24: libarchive-3.1.2-CVE-2016-5418-variation.patch
-Patch25: libarchive-3.1.2-CVE-2017-14503.patch
-Patch26: libarchive-3.1.2-CVE-2019-1000019.patch
-Patch27: libarchive-3.1.2-CVE-2019-1000020.patch
-Patch28: libarchive-3.3.2-CVE-2018-1000878.patch
-Patch29: libarchive-3.3.2-CVE-2018-1000877.patch
 
 %description
 Libarchive is a programming library that can create and read several different
@@ -95,7 +65,6 @@ Requires:       %{name} = %{version}-%{release}
 The bsdcpio package contains standalone bsdcpio utility split off regular
 libarchive packages.
 
-%global _hardened_build 1
 
 %prep
 %setup -q -n %{name}-%{version}
@@ -103,35 +72,6 @@ libarchive packages.
 # fix bugs in testsuite
 # ~> upstream ~> 26629c191a & b539b2e597 & 9caa49246
 %patch1 -p1 -b .fix-testsuite
-
-%patch2 -p1 -b .rhbz-1347085
-%patch3 -p1 -b .rhbz-1347086
-%patch4 -p1 -b .CVE-2015-8916-CVE-2015-8917
-%patch5 -p1 -b .CVE-2015-8919
-%patch6 -p1 -b .CVE-2015-8920
-%patch7 -p1 -b .CVE-2015-8921
-%patch8 -p1 -b .CVE-2015-8922
-%patch9 -p1 -b .CVE-2015-8923
-%patch10 -p1 -b .CVE-2015-8924
-%patch11 -p1 -b .CVE-2015-8925
-%patch12 -p1 -b .CVE-2015-8926
-%patch13 -p1 -b .CVE-2015-8928
-%patch14 -p1 -b .CVE-2015-8930
-%patch15 -p1 -b .CVE-2015-8931
-%patch16 -p1 -b .CVE-2015-8932
-%patch17 -p1 -b .CVE-2015-8934
-%patch18 -p1 -b .CVE-2016-4300
-%patch19 -p1 -b .CVE-2016-4302
-%patch20 -p1 -b .CVE-2016-4809
-%patch21 -p1 -b .CVE-2016-5844
-%patch22 -p1 -b .CVE-2016-1541
-%patch23 -p1 -b .CVE-2016-5418
-%patch24 -p1 -b .CVE-2016-5418-var
-%patch25 -p1 -b .CVE-2017-14503
-%patch26 -p1 -b .CVE-2019-1000019
-%patch27 -p1 -b .CVE-2019-1000020
-%patch28 -p1 -b .CVE-2019-1000878
-%patch29 -p1 -b .CVE-2019-1000877
 
 
 %build
@@ -169,7 +109,6 @@ run_testsuite()
         done
         return 1
     else
-        find -name '*_test.log' -exec cat {} +
         return 0
     fi
 }
@@ -225,30 +164,6 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Tue Apr 30 2019 Ondrej Dubaj <odubaj@redhat.com> - 3.1.2-12
-- fixed use after free in RAR decoder (#1700749)
-- fixed double free in RAR decoder (#1700748)
-
-* Fri Feb 22 2019 Pavel Raiskup <praiskup@redhat.com> - 3.1.2-11
-- fix out-of-bounds read within lha_read_data_none() (CVE-2017-14503)
-- fix crash on crafted 7zip archives (CVE-2019-1000019)
-- fix infinite loop in ISO9660 (CVE-2019-1000020)
-
-* Fri Aug 12 2016 Petr Kubat <pkubat@redhat.com> - 3.1.2-10
-- Fixes variation of CVE-2016-5418: Hard links could include ".." in their path.
-
-* Thu Aug 11 2016 Petr Kubat <pkubat@redhat.com> - 3.1.2-9
-- Fixes CVE-2016-5418: Archive Entry with type 1 (hardlink) causes file overwrite (#1365777)
-
-* Fri Jul 08 2016 Pavel Raiskup <praiskup@redhat.com> - 3.1.2-8
-- a bunch of security fixes (rhbz#1353065)
-
-* Fri Jan 24 2014 Daniel Mach <dmach@redhat.com> - 3.1.2-7
-- Mass rebuild 2014-01-24
-
-* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 3.1.2-6
-- Mass rebuild 2013-12-27
-
 * Mon Jul 22 2013 Pavel Raiskup <praiskup@redhat.com> - 3.1.2-5
 - try to workaround racy testsuite fail
 
