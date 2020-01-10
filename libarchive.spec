@@ -1,6 +1,6 @@
 Name:           libarchive
 Version:        3.1.2
-Release:        5%{?dist}
+Release:        7%{?dist}
 Summary:        A library for handling streaming archive formats
 
 Group:          System Environment/Libraries
@@ -164,6 +164,12 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Fri Jan 24 2014 Daniel Mach <dmach@redhat.com> - 3.1.2-7
+- Mass rebuild 2014-01-24
+
+* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 3.1.2-6
+- Mass rebuild 2013-12-27
+
 * Mon Jul 22 2013 Pavel Raiskup <praiskup@redhat.com> - 3.1.2-5
 - try to workaround racy testsuite fail
 
